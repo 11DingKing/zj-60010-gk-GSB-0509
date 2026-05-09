@@ -2,9 +2,59 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { SkillType } from "@prisma/client";
 
+const TIMEZONE_OFFSET_HOURS = 8;
+
+function toLocalDateString(utcDate: Date): string {
+  const localMs = utcDate.getTime() + TIMEZONE_OFFSET_HOURS * 60 * 60 * 1000;
+  const localDate = new Date(localMs);
+  const y = localDate.getUTCFullYear();
+  const m = String(localDate.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(localDate.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 @Injectable()
 export class UserService {
   constructor(private prisma: PrismaService) {}
+
+  async getStreakDays(userId: string): Promise<number> {
+    const records = await this.prisma.trainingRecord.findMany({
+      where: { userId },
+      select: { createdAt: true },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (records.length === 0) return 0;
+
+    const uniqueDays = [
+      ...new Set(records.map((r) => toLocalDateString(r.createdAt))),
+    ].sort((a, b) => b.localeCompare(a));
+
+    const today = toLocalDateString(new Date());
+    const yesterday = toLocalDateString(
+      new Date(Date.now() - 24 * 60 * 60 * 1000),
+    );
+
+    if (uniqueDays[0] !== today && uniqueDays[0] !== yesterday) {
+      return 0;
+    }
+
+    let streak = 1;
+    for (let i = 1; i < uniqueDays.length; i++) {
+      const prev = new Date(uniqueDays[i - 1]);
+      const curr = new Date(uniqueDays[i]);
+      const diffMs = prev.getTime() - curr.getTime();
+      const diffDays = Math.round(diffMs / (24 * 60 * 60 * 1000));
+
+      if (diffDays === 1) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  }
 
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -94,6 +144,8 @@ export class UserService {
       },
     });
 
+    const streakDays = await this.getStreakDays(userId);
+
     return {
       totalTrainings,
       totalChallenges,
@@ -101,6 +153,7 @@ export class UserService {
       unresolvedWrongAnswers: wrongAnswers,
       skillStats,
       recentTrainings,
+      streakDays,
     };
   }
 }

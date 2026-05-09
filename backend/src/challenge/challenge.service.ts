@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { RedisService } from "../common/redis.service";
 import { SubmitChallengeDto } from "./dto/challenge.dto";
-import { ChallengeGrade } from "@prisma/client";
+import { ChallengeGrade, SkillType } from "@prisma/client";
 
 const LEADERBOARD_CACHE_KEY = "challenge:leaderboard";
 const LEADERBOARD_CACHE_TTL = 300;
@@ -13,6 +13,28 @@ export class ChallengeService {
     private prisma: PrismaService,
     private redisService: RedisService,
   ) {}
+
+  async getRandomQuestions(count: number = 20, skillType?: SkillType) {
+    const where = skillType ? { skillType } : {};
+
+    const totalCount = await this.prisma.question.count({ where });
+    const take = Math.min(count, totalCount);
+
+    if (take === 0) return [];
+
+    const skip = Math.max(0, Math.floor(Math.random() * (totalCount - take)));
+
+    return this.prisma.question.findMany({
+      where,
+      skip,
+      take,
+      include: {
+        material: {
+          select: { title: true, content: true, tableData: true },
+        },
+      },
+    });
+  }
 
   calculateGrade(
     correctCount: number,
@@ -69,7 +91,6 @@ export class ChallengeService {
       if (!question) continue;
 
       const isCorrect = answer.userAnswer === question.correctAnswer;
-      if (isCorrect) correctCount;
       if (isCorrect) correctCount++;
 
       answerResults.push({
