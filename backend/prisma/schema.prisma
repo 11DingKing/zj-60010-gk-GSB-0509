@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SkillType {
+  GROWTH_RATE
+  PROPORTION
+  MULTIPLE
+  AVERAGE
+  ANNUAL_GROWTH
+}
+
+enum ChallengeGrade {
+  S
+  A
+  B
+  C
+  D
+}
+
+model User {
+  id            String          @id @default(uuid())
+  username      String          @unique
+  password      String
+  email         String?         @unique
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  trainingRecords TrainingRecord[]
+  challengeRecords ChallengeRecord[]
+  wrongAnswers  WrongAnswer[]
+  skillStats    SkillStats[]
+
+  @@map("users")
+}
+
+model Material {
+  id            String          @id @default(uuid())
+  title         String
+  content       String
+  tableData     Json
+  category      String?
+  difficulty    Int             @default(2)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  questions     Question[]
+  trainingRecords TrainingRecord[]
+  challengeRecords ChallengeRecord[]
+
+  @@map("materials")
+}
+
+model Question {
+  id            String          @id @default(uuid())
+  materialId    String
+  questionText  String
+  options       Json
+  correctAnswer Int
+  skillType     SkillType
+  explanation   String
+  formula       String
+  calculation   String
+  tip           String
+  orderIndex    Int
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  material      Material        @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  wrongAnswers  WrongAnswer[]
+
+  @@map("questions")
+}
+
+model TrainingRecord {
+  id            String          @id @default(uuid())
+  userId        String
+  materialId    String?
+  isChallenge   Boolean         @default(false)
+  totalTime     Int
+  correctCount  Int
+  totalCount    Int
+  accuracy      Float
+  answers       Json
+  createdAt     DateTime        @default(now())
+
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  material      Material?       @relation(fields: [materialId], references: [id], onDelete: SetNull)
+
+  @@map("training_records")
+}
+
+model WrongAnswer {
+  id            String          @id @default(uuid())
+  userId        String
+  questionId    String
+  userAnswer    Int
+  correctAnswer Int
+  timeSpent     Int
+  isResolved    Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  resolvedAt    DateTime?
+
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question      Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("wrong_answers")
+}
+
+model ChallengeRecord {
+  id            String          @id @default(uuid())
+  userId        String
+  materialId    String
+  totalTime     Int
+  correctCount  Int
+  totalCount    Int
+  accuracy      Float
+  grade         ChallengeGrade
+  score         Int
+  createdAt     DateTime        @default(now())
+
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  material      Material        @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@map("challenge_records")
+}
+
+model SkillStats {
+  id            String          @id @default(uuid())
+  userId        String
+  skillType     SkillType
+  totalAttempts Int            @default(0)
+  correctCount  Int            @default(0)
+  totalTimeSpent Int           @default(0)
+  accuracy      Float          @default(0)
+  avgTimePerQuestion Float     @default(0)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillType])
+  @@map("skill_stats")
+}

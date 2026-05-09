@@ -1,0 +1,36 @@
+<template>
+  <div id="app">
+    <el-config-provider :locale="zhCn">
+      <router-view />
+    </el-config-provider>
+  </div>
+</template>
+
+<script setup lang="ts">
+import zhCn from "element-plus/es/locale/lang/zh-cn";
+</script>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  font-family:
+    "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", Arial, sans-serif;
+}
+
+a {
+  text-decoration: none;
+}
+
+.el-table th {
+  background-color: #f5f7fa !important;
+}
+</style>
