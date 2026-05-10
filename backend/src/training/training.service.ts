@@ -71,54 +71,58 @@ export class TrainingService {
     const totalCount = answers.length;
     const accuracy = totalCount > 0 ? correctCount / totalCount : 0;
 
-    const trainingRecord = await this.prisma.trainingRecord.create({
-      data: {
-        userId,
-        materialId,
-        isChallenge,
-        totalTime,
-        correctCount,
-        totalCount,
-        accuracy,
-        answers: answerResults,
-      },
-    });
-
-    if (wrongAnswers.length > 0) {
-      await this.prisma.wrongAnswer.createMany({
-        data: wrongAnswers,
-      });
-    }
-
-    for (const [skillType, stats] of skillStatsUpdates) {
-      const existing = await this.prisma.skillStats.findUnique({
-        where: {
-          userId_skillType: {
-            userId,
-            skillType,
-          },
+    const trainingRecord = await this.prisma.$transaction(async (tx) => {
+      const record = await tx.trainingRecord.create({
+        data: {
+          userId,
+          materialId,
+          isChallenge,
+          totalTime,
+          correctCount,
+          totalCount,
+          accuracy,
+          answers: answerResults,
         },
       });
 
-      if (existing) {
-        const newTotalAttempts = existing.totalAttempts + stats.total;
-        const newCorrectCount = existing.correctCount + stats.correct;
-        const newTotalTimeSpent = existing.totalTimeSpent + stats.time;
-
-        await this.prisma.skillStats.update({
-          where: { id: existing.id },
-          data: {
-            totalAttempts: newTotalAttempts,
-            correctCount: newCorrectCount,
-            totalTimeSpent: newTotalTimeSpent,
-            accuracy:
-              newTotalAttempts > 0 ? newCorrectCount / newTotalAttempts : 0,
-            avgTimePerQuestion:
-              newTotalAttempts > 0 ? newTotalTimeSpent / newTotalAttempts : 0,
-          },
+      if (wrongAnswers.length > 0) {
+        await tx.wrongAnswer.createMany({
+          data: wrongAnswers,
         });
       }
-    }
+
+      for (const [skillType, stats] of skillStatsUpdates) {
+        const existing = await tx.skillStats.findUnique({
+          where: {
+            userId_skillType: {
+              userId,
+              skillType,
+            },
+          },
+        });
+
+        if (existing) {
+          const newTotalAttempts = existing.totalAttempts + stats.total;
+          const newCorrectCount = existing.correctCount + stats.correct;
+          const newTotalTimeSpent = existing.totalTimeSpent + stats.time;
+
+          await tx.skillStats.update({
+            where: { id: existing.id },
+            data: {
+              totalAttempts: newTotalAttempts,
+              correctCount: newCorrectCount,
+              totalTimeSpent: newTotalTimeSpent,
+              accuracy:
+                newTotalAttempts > 0 ? newCorrectCount / newTotalAttempts : 0,
+              avgTimePerQuestion:
+                newTotalAttempts > 0 ? newTotalTimeSpent / newTotalAttempts : 0,
+            },
+          });
+        }
+      }
+
+      return record;
+    });
 
     return {
       trainingRecord,
