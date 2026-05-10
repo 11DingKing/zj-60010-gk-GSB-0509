@@ -135,4 +135,5 @@ export interface DashboardStats {
   unresolvedWrongAnswers: number;
   skillStats: SkillStats[];
   recentTrainings: TrainingRecord[];
+  streak?: number;
 }

@@ -22,4 +22,10 @@ export class ChallengeController {
   async getUserBestScore(@Request() req) {
     return this.challengeService.getUserBestScore(req.user.userId);
   }
+
+  @Public()
+  @Get("random-questions")
+  async getRandomQuestions(@Query("limit") limit: number = 20) {
+    return this.challengeService.getRandomQuestions(limit);
+  }
 }
