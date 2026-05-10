@@ -75,16 +75,22 @@ export class MaterialService {
     return this.findOne(validMaterials[randomIndex].id);
   }
 
-  async getQuestionsBySkillType(skillType: SkillType) {
-    return this.prisma.question.findMany({
+  async getQuestionsBySkillType(skillType: SkillType, limit: number = 20) {
+    const questions = await this.prisma.question.findMany({
       where: { skillType },
       include: {
         material: {
           select: { title: true, content: true, tableData: true },
         },
       },
-      orderBy: { createdAt: "desc" },
     });
+
+    if (questions.length <= limit) {
+      return questions;
+    }
+
+    const shuffled = [...questions].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, limit);
   }
 
   async getSkillTypes() {

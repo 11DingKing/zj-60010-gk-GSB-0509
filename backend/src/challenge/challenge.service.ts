@@ -155,4 +155,21 @@ export class ChallengeService {
       },
     });
   }
+
+  async getRandomQuestions(limit: number = 20) {
+    const questions = await this.prisma.question.findMany({
+      include: {
+        material: {
+          select: { title: true, content: true, tableData: true },
+        },
+      },
+    });
+
+    if (questions.length <= limit) {
+      return questions;
+    }
+
+    const shuffled = [...questions].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, limit);
+  }
 }
