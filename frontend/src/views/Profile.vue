@@ -31,7 +31,7 @@
         </el-row>
 
         <el-row :gutter="20" class="stats-cards">
-          <el-col :xs="24" :sm="12" :md="6">
+          <el-col :xs="24" :sm="12" :md="6" :lg="4">
             <el-card class="stat-card">
               <div class="stat-icon primary">
                 <el-icon size="32"><Document /></el-icon>
@@ -45,7 +45,7 @@
             </el-card>
           </el-col>
 
-          <el-col :xs="24" :sm="12" :md="6">
+          <el-col :xs="24" :sm="12" :md="6" :lg="4">
             <el-card class="stat-card">
               <div class="stat-icon warning">
                 <el-icon size="32"><Trophy /></el-icon>
@@ -59,7 +59,7 @@
             </el-card>
           </el-col>
 
-          <el-col :xs="24" :sm="12" :md="6">
+          <el-col :xs="24" :sm="12" :md="6" :lg="4">
             <el-card class="stat-card">
               <div class="stat-icon danger">
                 <el-icon size="32"><Warning /></el-icon>
@@ -73,7 +73,7 @@
             </el-card>
           </el-col>
 
-          <el-col :xs="24" :sm="12" :md="6">
+          <el-col :xs="24" :sm="12" :md="6" :lg="4">
             <el-card class="stat-card">
               <div class="stat-icon success">
                 <el-icon size="32"><Medal /></el-icon>
@@ -81,6 +81,18 @@
               <div class="stat-content">
                 <span class="stat-value">{{ bestChallenge?.score || 0 }}</span>
                 <span class="stat-label">最高得分</span>
+              </div>
+            </el-card>
+          </el-col>
+
+          <el-col :xs="24" :sm="12" :md="6" :lg="4">
+            <el-card class="stat-card">
+              <div class="stat-icon streak">
+                <el-icon size="32"><Calendar /></el-icon>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">{{ dashboardStats.streakDays || 0 }}</span>
+                <span class="stat-label">连续打卡(天)</span>
               </div>
             </el-card>
           </el-col>
@@ -211,6 +223,7 @@ import {
   Trophy,
   Warning,
   Medal,
+  Calendar,
 } from "@element-plus/icons-vue";
 import * as echarts from "echarts";
 import { userApi } from "@/api";
@@ -233,6 +246,7 @@ const dashboardStats = ref<DashboardStats>({
   unresolvedWrongAnswers: 0,
   skillStats: [],
   recentTrainings: [],
+  streakDays: 0,
 });
 const challengeHistory = ref<ChallengeRecord[]>([]);
 const skillStats = ref<SkillStats[]>([]);
@@ -524,6 +538,11 @@ onUnmounted(() => {
 .stat-icon.danger {
   background-color: rgba(245, 108, 108, 0.1);
   color: #f56c6c;
+}
+
+.stat-icon.streak {
+  background-color: rgba(144, 147, 153, 0.1);
+  color: #909399;
 }
 
 .stat-content {
