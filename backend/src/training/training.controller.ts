@@ -24,12 +24,12 @@ export class TrainingController {
   async getWrongAnswers(
     @Request() req,
     @Query("skillType") skillType?: SkillType,
-    @Query("isResolved") isResolved?: boolean,
+    @Query("isResolved") isResolved?: string,
   ) {
     const resolved =
-      isResolved === true || isResolved === "true"
+      isResolved === "true"
         ? true
-        : isResolved === false || isResolved === "false"
+        : isResolved === "false"
           ? false
           : undefined;
     return this.trainingService.getWrongAnswers(

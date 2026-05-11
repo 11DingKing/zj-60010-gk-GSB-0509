@@ -86,6 +86,20 @@
           </el-col>
         </el-row>
 
+        <el-row :gutter="20" class="stats-cards" style="margin-top: 0">
+          <el-col :xs="24" :sm="12" :md="6">
+            <el-card class="stat-card">
+              <div class="stat-icon info">
+                <el-icon size="32"><Calendar /></el-icon>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">{{ dashboardStats.streak || 0 }}</span>
+                <span class="stat-label">连续打卡</span>
+              </div>
+            </el-card>
+          </el-col>
+        </el-row>
+
         <el-row :gutter="20" class="charts-row">
           <el-col :xs="24" :lg="12">
             <el-card>
@@ -211,6 +225,7 @@ import {
   Trophy,
   Warning,
   Medal,
+  Calendar,
 } from "@element-plus/icons-vue";
 import * as echarts from "echarts";
 import { userApi } from "@/api";
@@ -524,6 +539,11 @@ onUnmounted(() => {
 .stat-icon.danger {
   background-color: rgba(245, 108, 108, 0.1);
   color: #f56c6c;
+}
+
+.stat-icon.info {
+  background-color: rgba(144, 147, 153, 0.1);
+  color: #909399;
 }
 
 .stat-content {
