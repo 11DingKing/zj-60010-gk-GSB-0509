@@ -71,57 +71,74 @@ export class TrainingService {
     const totalCount = answers.length;
     const accuracy = totalCount > 0 ? correctCount / totalCount : 0;
 
-    const trainingRecord = await this.prisma.trainingRecord.create({
-      data: {
-        userId,
-        materialId,
-        isChallenge,
-        totalTime,
-        correctCount,
-        totalCount,
-        accuracy,
-        answers: answerResults,
-      },
-    });
-
-    if (wrongAnswers.length > 0) {
-      await this.prisma.wrongAnswer.createMany({
-        data: wrongAnswers,
-      });
-    }
-
-    for (const [skillType, stats] of skillStatsUpdates) {
-      const existing = await this.prisma.skillStats.findUnique({
-        where: {
-          userId_skillType: {
-            userId,
-            skillType,
-          },
+    const result = await this.prisma.$transaction(async (tx) => {
+      const trainingRecord = await tx.trainingRecord.create({
+        data: {
+          userId,
+          materialId,
+          isChallenge,
+          totalTime,
+          correctCount,
+          totalCount,
+          accuracy,
+          answers: answerResults,
         },
       });
 
-      if (existing) {
-        const newTotalAttempts = existing.totalAttempts + stats.total;
-        const newCorrectCount = existing.correctCount + stats.correct;
-        const newTotalTimeSpent = existing.totalTimeSpent + stats.time;
-
-        await this.prisma.skillStats.update({
-          where: { id: existing.id },
-          data: {
-            totalAttempts: newTotalAttempts,
-            correctCount: newCorrectCount,
-            totalTimeSpent: newTotalTimeSpent,
-            accuracy:
-              newTotalAttempts > 0 ? newCorrectCount / newTotalAttempts : 0,
-            avgTimePerQuestion:
-              newTotalAttempts > 0 ? newTotalTimeSpent / newTotalAttempts : 0,
-          },
+      if (wrongAnswers.length > 0) {
+        await tx.wrongAnswer.createMany({
+          data: wrongAnswers,
         });
       }
-    }
+
+      for (const [skillType, stats] of skillStatsUpdates) {
+        const existing = await tx.skillStats.findUnique({
+          where: {
+            userId_skillType: {
+              userId,
+              skillType,
+            },
+          },
+        });
+
+        if (existing) {
+          const newTotalAttempts = existing.totalAttempts + stats.total;
+          const newCorrectCount = existing.correctCount + stats.correct;
+          const newTotalTimeSpent = existing.totalTimeSpent + stats.time;
+
+          await tx.skillStats.update({
+            where: { id: existing.id },
+            data: {
+              totalAttempts: newTotalAttempts,
+              correctCount: newCorrectCount,
+              totalTimeSpent: newTotalTimeSpent,
+              accuracy:
+                newTotalAttempts > 0 ? newCorrectCount / newTotalAttempts : 0,
+              avgTimePerQuestion:
+                newTotalAttempts > 0 ? newTotalTimeSpent / newTotalAttempts : 0,
+            },
+          });
+        } else {
+          await tx.skillStats.create({
+            data: {
+              userId,
+              skillType,
+              totalAttempts: stats.total,
+              correctCount: stats.correct,
+              totalTimeSpent: stats.time,
+              accuracy: stats.total > 0 ? stats.correct / stats.total : 0,
+              avgTimePerQuestion:
+                stats.total > 0 ? stats.time / stats.total : 0,
+            },
+          });
+        }
+      }
+
+      return trainingRecord;
+    });
 
     return {
-      trainingRecord,
+      trainingRecord: result,
       results: answerResults,
     };
   }
@@ -187,5 +204,19 @@ export class TrainingService {
     }
 
     return record;
+  }
+
+  async getRandomQuestionsBySkillType(
+    skillType: SkillType,
+    limit: number = 20,
+  ) {
+    const questions = await this.prisma.$queryRaw`
+      SELECT * FROM questions
+      WHERE "skillType" = ${skillType}::"SkillType"
+      ORDER BY RANDOM()
+      LIMIT ${limit}
+    `;
+
+    return questions;
   }
 }

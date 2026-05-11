@@ -155,4 +155,12 @@ export class ChallengeService {
       },
     });
   }
+
+  async getRandomQuestions(limit: number = 20) {
+    return this.prisma.$queryRaw`
+      SELECT * FROM questions
+      ORDER BY RANDOM()
+      LIMIT ${limit}
+    `;
+  }
 }
